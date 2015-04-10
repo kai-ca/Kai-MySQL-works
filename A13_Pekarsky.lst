@@ -1,0 +1,296 @@
+--------------
+/* Kai Yun Pekarsky */
+
+    /* enable warnings! */
+
+use a_testbed
+--------------
+
+Query OK, 0 rows affected (0.02 sec)
+
+--------------
+/*  TASK 00 */ 
+select user(), current_date(), version(), @@sql_mode
+--------------
+
+*************************** 1. row ***************************
+        user(): a_kai@localhost
+current_date(): 2014-11-18
+     version(): 5.6.20
+    @@sql_mode: NO_ENGINE_SUBSTITUTION
+1 row in set (0.03 sec)
+
+--------------
+/*  TASK 01 */
+drop table if exists a_testbed.SmallAnimals
+--------------
+
+Query OK, 0 rows affected (0.36 sec)
+
+--------------
+create table a_testbed.SmallAnimals as (
+    select cl_id "CLID"
+    , an_id "ANID"
+    , substring(an_name, 1, 10) "ANNAME"
+    , case 
+        when an_type in ('snake', 'chelonian', 'crocodilian', 'lizard') then 'Reptile' 
+        else 'Rodent' end "ANCATEGORY"
+    , cast(max(ex_date) as date) "RECENTEXAMDATE"
+    , sum(ex_fee) "TOTALFEES"
+    from a_vets.vt_animals
+    left join a_vets.vt_exam_headers using (an_id)
+    left join a_vets.vt_exam_details using (ex_id)
+    where an_type in ('snake', 'chelonian', 'crocodilian', 'lizard', 'hamster', 'capybara', 'porcupine', 'dormouse')
+    group by an_id)
+--------------
+
+Query OK, 14 rows affected (0.57 sec)
+Records: 14  Duplicates: 0  Warnings: 0
+
+--------------
+select *
+from a_testbed.SmallAnimals
+--------------
+
++------+-------+-----------+------------+----------------+-----------+
+| CLID | ANID  | ANNAME    | ANCATEGORY | RECENTEXAMDATE | TOTALFEES |
++------+-------+-----------+------------+----------------+-----------+
+| 4534 | 11015 | Kenny     | Reptile    | NULL           |      NULL |
+| 3560 | 12038 | Gutsy     | Rodent     | NULL           |      NULL |
+| 5699 | 15001 | Big Mike  | Reptile    | 2014-04-22     |    265.00 |
+| 5699 | 15002 | George    | Reptile    | 2014-06-10     |    130.00 |
+|  411 | 15401 | Pinkie    | Reptile    | 2014-06-06     |    105.00 |
+| 1825 | 16002 | Fritz     | Rodent     | 2014-02-25     |    374.00 |
+| 5699 | 17002 | Fritzchen | Rodent     | 2013-08-10     |    200.50 |
+| 5699 | 17025 | 25        | Reptile    | 2014-04-30     |    260.00 |
+| 7152 | 17026 | 3P#_26    | Reptile    | 2014-03-15     |     50.00 |
+| 7152 | 17027 | 3P#_25    | Reptile    | 2013-12-27     |    100.00 |
+| 5699 | 21004 | Gutsy     | Reptile    | NULL           |      NULL |
+| 1825 | 21005 | Koshka    | Rodent     | 2013-12-31     |    275.00 |
+| 1825 | 21006 | Koshka    | Rodent     | NULL           |      NULL |
+| 1852 | 21007 | NULL      | Reptile    | NULL           |      NULL |
++------+-------+-----------+------------+----------------+-----------+
+14 rows in set (0.00 sec)
+
+--------------
+commit
+--------------
+
+Query OK, 0 rows affected (0.04 sec)
+
+--------------
+/*  TASK 02 */
+alter table a_testbed.SmallAnimals
+add EXAMSTATUS varchar(20)
+--------------
+
+Query OK, 0 rows affected (0.69 sec)
+Records: 0  Duplicates: 0  Warnings: 0
+
+--------------
+update a_testbed.SmallAnimals
+set EXAMSTATUS = case
+    when date_format(RECENTEXAMDATE, '%Y-%m') > date_format(date_sub(current_date(), interval 9 month), '%Y-%m') then 'current'
+    when date_format(RECENTEXAMDATE, '%Y-%m') between date_format(date_sub(current_date(), interval 11 month), '%Y-%m') and date_format(date_sub(current_date(), interval 9 month), '%Y-%m') then 'send notice'
+    when date_format(RECENTEXAMDATE, '%Y-%m') <= date_format(date_sub(current_date(), interval 12 month), '%Y-%m') then 'send 2nd notice'
+    else 'no data-call' end
+--------------
+
+Query OK, 14 rows affected (0.00 sec)
+Rows matched: 14  Changed: 14  Warnings: 0
+
+--------------
+select *
+from a_testbed.SmallAnimals
+--------------
+
++------+-------+-----------+------------+----------------+-----------+-----------------+
+| CLID | ANID  | ANNAME    | ANCATEGORY | RECENTEXAMDATE | TOTALFEES | EXAMSTATUS      |
++------+-------+-----------+------------+----------------+-----------+-----------------+
+| 4534 | 11015 | Kenny     | Reptile    | NULL           |      NULL | no data-call    |
+| 3560 | 12038 | Gutsy     | Rodent     | NULL           |      NULL | no data-call    |
+| 5699 | 15001 | Big Mike  | Reptile    | 2014-04-22     |    265.00 | current         |
+| 5699 | 15002 | George    | Reptile    | 2014-06-10     |    130.00 | current         |
+|  411 | 15401 | Pinkie    | Reptile    | 2014-06-06     |    105.00 | current         |
+| 1825 | 16002 | Fritz     | Rodent     | 2014-02-25     |    374.00 | send notice     |
+| 5699 | 17002 | Fritzchen | Rodent     | 2013-08-10     |    200.50 | send 2nd notice |
+| 5699 | 17025 | 25        | Reptile    | 2014-04-30     |    260.00 | current         |
+| 7152 | 17026 | 3P#_26    | Reptile    | 2014-03-15     |     50.00 | current         |
+| 7152 | 17027 | 3P#_25    | Reptile    | 2013-12-27     |    100.00 | send notice     |
+| 5699 | 21004 | Gutsy     | Reptile    | NULL           |      NULL | no data-call    |
+| 1825 | 21005 | Koshka    | Rodent     | 2013-12-31     |    275.00 | send notice     |
+| 1825 | 21006 | Koshka    | Rodent     | NULL           |      NULL | no data-call    |
+| 1852 | 21007 | NULL      | Reptile    | NULL           |      NULL | no data-call    |
++------+-------+-----------+------------+----------------+-----------+-----------------+
+14 rows in set (0.00 sec)
+
+--------------
+commit
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+      
+/*  TASK 03 */
+replace into a_testbed.upd_services
+select * 
+from a_testbed.upd_services_changes_1
+where item_id not in (
+      select C.item_id
+      from a_testbed.upd_services_changes_1 C
+      join a_testbed.upd_services S on C.item_id = S.srv_id)
+--------------
+
+Query OK, 4 rows affected (0.04 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+--------------
+      
+select *
+from a_testbed.upd_services
+order by srv_id
+--------------
+
++--------+------------------------------+----------------+
+| srv_id | srv_desc                     | srv_list_price |
++--------+------------------------------+----------------+
+|    100 | Consult- no charge           |           0.00 |
+|    103 | Routine Exam-Feline          |          50.00 |
+|    104 | Followup Exam-Feline         |          45.00 |
+|    105 | Routine Exam-Reptile         |          25.00 |
+|    106 | Followup Exam-Reptile        |          23.00 |
+|    116 | Reptile dental procedure     |         175.00 |
+|    117 | Amphib dental procedure      |         375.00 |
+|    118 | First Feline PCR             |          20.25 |
+|    119 | Second Feline PCR            |          20.25 |
+|    120 | Third Feline PCR             |          20.25 |
+|    121 | Flu Rhino Vacc               |          26.00 |
+|    122 | Scaly Mite                   |          35.00 |
+|    123 | Intestinal Parasite Screen   |          26.00 |
+|    124 | Tick Removal                 |          15.00 |
+|    125 | Behaviour Modification       |          75.00 |
+|    126 | Vitamin E- Concentrated      |          30.00 |
+|    127 | Sedative-Feline              |          25.00 |
+|    128 | Flea Treatment- Small Animal |          35.00 |
+|    129 | Flea Treatment- Large Animal |          50.00 |
+|    130 | Routine Exam- Canine         |          55.00 |
+|    131 | Followup Exam- Canine        |          35.00 |
++--------+------------------------------+----------------+
+21 rows in set (0.00 sec)
+
+--------------
+commit
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+/*  TASK 04 */
+replace into a_testbed.upd_services
+select item_id
+, if(item_desc is not null, item_desc, srv_desc) "srv_desc"
+, if(item_list_price is not null, item_list_price, srv_list_price) "srv_list_price"      
+from a_testbed.upd_services_changes_2 C
+join a_testbed.upd_services S on C.item_id = S.srv_id
+--------------
+
+Query OK, 10 rows affected (0.03 sec)
+Records: 5  Duplicates: 5  Warnings: 0
+
+--------------
+select *
+from a_testbed.upd_services
+order by srv_id
+--------------
+
++--------+------------------------------+----------------+
+| srv_id | srv_desc                     | srv_list_price |
++--------+------------------------------+----------------+
+|    100 | Consult- no charge           |           0.00 |
+|    103 | Routine Exam-Feline          |          50.00 |
+|    104 | Followup Exam-Feline         |          45.00 |
+|    105 | Routine Exam-Reptile         |          25.00 |
+|    106 | Followup Exam-Reptile        |          25.00 |
+|    116 | Reptile dental procedure     |         175.00 |
+|    117 | Amphib dental procedure      |         375.00 |
+|    118 | First Feline PCR             |          20.25 |
+|    119 | Second Feline PCR            |          20.25 |
+|    120 | Third Feline PCR             |          20.25 |
+|    121 | Flu Rhino Vacc               |          26.00 |
+|    122 | Scaly Mite Powder            |          35.00 |
+|    123 |                              |          35.25 |
+|    124 | Tick Removal                 |          15.00 |
+|    125 | Behaviour Modification       |          75.00 |
+|    126 | Vitamin E- Concentrated      |          30.00 |
+|    127 | Heavy Duty Sedative-Feline   |          75.99 |
+|    128 | Flea Treatment- Small Animal |          35.00 |
+|    129 | Flea Treatment- Large Animal |          50.00 |
+|    130 | Routine Exam- Canine         |          55.00 |
+|    131 | Followup Exam- Canine        |          40.25 |
++--------+------------------------------+----------------+
+21 rows in set (0.00 sec)
+
+--------------
+commit
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+/*  TASK 05 */
+replace into a_testbed.upd_services
+select item_id
+, if(item_desc is not null, item_desc, srv_desc) "srv_desc"
+, item_list_price
+from a_testbed.upd_services_changes_3 C
+left join a_testbed.upd_services S on C.item_id = S.srv_id
+where item_list_price between 0 and 100
+--------------
+
+Query OK, 11 rows affected (0.05 sec)
+Records: 7  Duplicates: 4  Warnings: 0
+
+--------------
+select *
+from a_testbed.upd_services
+order by srv_id
+--------------
+
++--------+------------------------------+----------------+
+| srv_id | srv_desc                     | srv_list_price |
++--------+------------------------------+----------------+
+|    100 | Consult- no charge           |           0.00 |
+|    103 | Routine Exam-Feline          |          50.00 |
+|    104 | Followup Exam-Feline         |          45.00 |
+|    105 | Routine Exam-Reptile         |          25.00 |
+|    106 | Followup Exam-Reptile        |          25.00 |
+|    107 | Rabies_V-2014 SFall-Canine   |          15.00 |
+|    108 | Rabies_V-2014 SFall-Feline   |          15.00 |
+|    116 | Reptile dental procedure     |         175.00 |
+|    117 | Amphib dental procedure      |         375.00 |
+|    118 | First Feline PCR             |          20.25 |
+|    119 | Second Feline PCR            |          20.25 |
+|    120 | Third Feline PCR             |          20.25 |
+|    121 | Flu Rhino Vacc               |          26.00 |
+|    122 | Scaly Mite Powder            |          35.00 |
+|    123 |                              |          35.25 |
+|    124 | Tick Removal                 |           0.00 |
+|    125 | Behaviour Modification       |          75.00 |
+|    126 | Vitamin E- Concentrated      |          45.00 |
+|    127 | Heavy Duty Sedative-Feline   |          75.99 |
+|    128 | Flea Treatment- Small Animal |          45.00 |
+|    129 | Flea Treatment- Large Animal |          65.00 |
+|    130 | Routine Exam- Canine         |          55.00 |
+|    131 | Followup Exam- Canine        |          40.25 |
+|    136 | Hazardous Materials Disposal |           0.00 |
++--------+------------------------------+----------------+
+24 rows in set (0.00 sec)
+
+--------------
+commit
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+Bye

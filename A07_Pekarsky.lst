@@ -1,0 +1,201 @@
+--------------
+/* Kai Yun Pekarsky */
+
+    /* enable warnings! */
+
+use a_plants
+--------------
+
+Query OK, 0 rows affected (0.02 sec)
+
+--------------
+/*  TASK 00 */ 
+select user(), current_date(), version(), @@sql_mode
+--------------
+
+*************************** 1. row ***************************
+        user(): a_kai@localhost
+current_date(): 2014-10-09
+     version(): 5.6.20
+    @@sql_mode: NO_ENGINE_SUBSTITUTION
+1 row in set (0.03 sec)
+
+--------------
+/*  TASK 01 */
+select plant_id
+, common_name
+, on_hand
+, list_price
+, round (list_price * on_hand, -2) "InventoryCost"
+from a_plants.plants
+where discontinued_date is not null
+and on_hand !=0
+--------------
+
++----------+--------------------+---------+------------+---------------+
+| plant_id | common_name        | on_hand | list_price | InventoryCost |
++----------+--------------------+---------+------------+---------------+
+|     1003 | Anemone            |     150 |       8.25 |          1200 |
+|     2020 | Porcupine Thistle  |     150 |      25.00 |          3800 |
+|     2022 | Echinoderm Thistle |     450 |      25.00 |         11300 |
++----------+--------------------+---------+------------+---------------+
+3 rows in set (0.01 sec)
+
+--------------
+/*  TASK 02 */
+set @salesTax = 0.0913
+--------------
+
+Query OK, 0 rows affected (0.03 sec)
+
+--------------
+select order_id "order id"
+, plant_id "plant id"
+, price_per "price paid"
+, quantity "quantity purchcased"
+, price_per * quantity "extended cost"
+, ceiling (price_per * quantity * @salesTax * 100)/100 "tax amount"
+from a_plants.order_details
+--------------
+
++----------+----------+------------+---------------------+---------------+------------+
+| order id | plant id | price paid | quantity purchcased | extended cost | tax amount |
++----------+----------+------------+---------------------+---------------+------------+
+|     5101 |     1001 |      12.50 |                   1 |         12.50 |     1.1500 |
+|     5101 |     2022 |      50.00 |                 111 |       5550.00 |   506.7200 |
+|     5102 |     1002 |      15.00 |                 100 |       1500.00 |   136.9500 |
+|     5102 |     1004 |      14.50 |                 200 |       2900.00 |   264.7700 |
+|     5102 |     1009 |       5.20 |                 200 |       1040.00 |    94.9600 |
+|     5103 |     1004 |      15.50 |                  20 |        310.00 |    28.3100 |
+|     5103 |     2023 |       5.50 |                  20 |        110.00 |    10.0500 |
+|     5104 |     1004 |      17.50 |                  15 |        262.50 |    23.9700 |
+|     5104 |     1009 |      50.00 |                   3 |        150.00 |    13.7000 |
+|     5104 |     1010 |       2.75 |                  10 |         27.50 |     2.5200 |
+|     5104 |     2022 |      37.50 |                 111 |       4162.50 |   380.0400 |
+|     5104 |     2023 |       5.50 |                  10 |         55.00 |     5.0300 |
+|     5105 |     1004 |       5.25 |                 250 |       1312.50 |   119.8400 |
+|     5105 |     1009 |       9.38 |                  50 |        469.00 |    42.8200 |
+|     5105 |     1010 |       2.75 |                  25 |         68.75 |     6.2800 |
+|     5202 |     1001 |      12.50 |                   1 |         12.50 |     1.1500 |
+|     5203 |     1001 |      12.50 |                  10 |        125.00 |    11.4200 |
+|     5204 |     1001 |      12.50 |                   1 |         12.50 |     1.1500 |
+|     5245 |     1004 |      15.50 |                  25 |        387.50 |    35.3800 |
++----------+----------+------------+---------------------+---------------+------------+
+19 rows in set (0.01 sec)
+
+--------------
+/*  TASK 03 */
+select cust_id "customer id"
+, cust_name_last "customer last name"
+, order_date "order date"
+from a_plants.order_headers
+join a_plants.customers using (cust_id)
+where find_in_set(cust_state, 'IL,IN,IA,KS,MI,MN,MO,NE,ND,OH,SD,WI') =0
+--------------
+
++-------------+--------------------+------------+
+| customer id | customer last name | order date |
++-------------+--------------------+------------+
+|        3009 | Peterson           | 2014-07-31 |
+|        3009 | Peterson           | 2014-10-01 |
+|        3009 | Peterson           | 2013-09-03 |
+|        3012 | Hawkins            | 2014-10-10 |
+|        3012 | Hawkins            | 2013-07-22 |
+|        3012 | Hawkins            | 2013-08-01 |
+|        3012 | Hawkins            | 2013-08-02 |
+|        3012 | Hawkins            | 2013-08-03 |
++-------------+--------------------+------------+
+8 rows in set (0.06 sec)
+
+--------------
+/*  TASK 04 */
+set @random = floor(rand() * 41) + 10
+--------------
+
+Query OK, 0 rows affected (0.01 sec)
+
+--------------
+select @random
+--------------
+
++---------+
+| @random |
++---------+
+|      47 |
++---------+
+1 row in set (0.02 sec)
+
+--------------
+select plant_id, list_price
+from a_plants.plants
+where list_price < @random
+--------------
+
++----------+------------+
+| plant_id | list_price |
++----------+------------+
+|     1001 |      12.50 |
+|     1002 |      15.63 |
+|     1003 |       8.25 |
+|     1004 |      15.50 |
+|     1005 |       2.75 |
+|     1009 |       9.38 |
+|     1010 |       2.75 |
+|     2020 |      25.00 |
+|     2021 |      25.00 |
+|     2022 |      25.00 |
+|     2023 |      12.50 |
+|     2057 |       9.25 |
++----------+------------+
+12 rows in set (0.00 sec)
+
+--------------
+/*  TASK 05 */
+select distinct plant_id "plant id"
+, common_name "common name"
+, concat (genus, ' ', species) "scientific name"
+from a_plants.plants
+join a_plants.plant_taxonomy using (plant_id)
+join a_plants.order_details using (plant_id)
+join a_plants.order_headers using (order_id)
+where order_date between '2013-07-01' and '2013-08-31'
+--------------
+
++----------+--------------------+--------------------------+
+| plant id | common name        | scientific name          |
++----------+--------------------+--------------------------+
+|     1004 | Wild Wood Anemones | Anemone nemorosa         |
+|     1009 | Cursed Crowfoot    | Ranunuculus sceleratus   |
+|     1010 | California Poppy   | Eschscholzia californica |
+|     1001 | Cowslip            | Primula veris            |
++----------+--------------------+--------------------------+
+4 rows in set (0.08 sec)
+
+--------------
+/*  TASK 06 */
+select distinct plant_id "plant id"
+, common_name "common name"
+, concat (genus, ' ', species) "scientific name"
+from a_plants.plants
+left join a_plants.plant_taxonomy using (plant_id)
+join a_plants.order_details using (plant_id)
+join a_plants.order_headers using (order_id)
+where plant_id not in (
+      select plant_id 
+      from a_plants.order_details
+      where order_id in (
+            select order_id
+            from a_plants.order_headers
+            where order_date between '2013-07-01' and '2013-08-31'))
+--------------
+
++----------+------------------------+--------------------+
+| plant id | common name            | scientific name    |
++----------+------------------------+--------------------+
+|     1002 | Common Buttercup       | Ranunculus acris   |
+|     2023 | Rocky Mountain Thistle | Cirsium perplexans |
+|     2022 | Echinoderm Thistle     | NULL               |
++----------+------------------------+--------------------+
+3 rows in set (0.01 sec)
+
+Bye

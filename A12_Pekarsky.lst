@@ -1,0 +1,293 @@
+--------------
+/* Kai Yun Pekarsky */
+
+    /* enable warnings! */
+
+/*  TASK 00 */ 
+select user(), current_date(), version(), @@sql_mode
+--------------
+
+*************************** 1. row ***************************
+        user(): a_kai@localhost
+current_date(): 2014-11-09
+     version(): 5.6.20
+    @@sql_mode: NO_ENGINE_SUBSTITUTION
+1 row in set (0.00 sec)
+
+--------------
+/*  TASK 01 */
+select cust_id
+, cust_name_last
+, coalesce(
+  (select count(order_id)
+   from a_bkorders.order_headers OH
+   where OH.cust_id = C.cust_id
+   group by cust_id  ), 0) "number of orders"
+from a_bkorders.customers C
+where cust_id <= 250000
+order by cust_id
+--------------
+
++---------+----------------+------------------+
+| cust_id | cust_name_last | number of orders |
++---------+----------------+------------------+
+|  200368 | Blake          |                7 |
+|  202958 | Denver         |                0 |
+|  208950 | Adams          |                1 |
+|  211483 | Carroll        |                5 |
+|  212921 | Books on Tap   |               11 |
+|  217002 | Grieg          |                0 |
+|  217796 | Anders         |               11 |
+|  218709 | Bonnard        |               12 |
+|  221297 | Dodgson        |                8 |
+|  222477 | Rossetti       |               10 |
+|  224038 | Austin         |                5 |
+|  226275 | Dalrymple      |                0 |
+|  226656 | Randall        |                3 |
+|  227105 | Kafka          |               14 |
+|  228175 | Cardin         |                2 |
+|  228275 | Mikulski       |                0 |
+|  228352 | Edwards        |                0 |
+|  234138 | Keats          |                9 |
+|  234709 | Brahms         |                3 |
+|  239427 | Marksa         |               10 |
++---------+----------------+------------------+
+20 rows in set (0.00 sec)
+
+--------------
+/*  TASK 02 */
+select cust_id, cust_name_last
+from a_bkorders.customers C
+where exists (
+      select 1
+      from a_bkorders.order_headers OH
+      where OH.cust_id = C.cust_id
+      and concat(month(order_date), year(order_date)) = concat(10, year(current_date())-1)
+      and order_id in (
+          select order_id
+          from a_bkorders.order_details OD
+          where OD.order_id = OH.order_id
+          and quantity >= 1))
+and exists (
+      select 2
+      from a_bkorders.order_headers OH
+      where OH.cust_id = C.cust_id
+      and concat(month(order_date), year(order_date)) = concat(11, year(current_date())-1)
+      and order_id in (
+          select order_id
+          from a_bkorders.order_details OD
+          where OD.order_id = OH.order_id
+          and quantity >= 1)) 
+and exists (
+      select 3
+      from a_bkorders.order_headers OH
+      where OH.cust_id = C.cust_id
+      and concat(month(order_date), year(order_date)) = concat(12, year(current_date())-1)
+      and order_id in (
+          select order_id
+          from a_bkorders.order_details OD
+          where OD.order_id = OH.order_id
+          and quantity >= 1))
+order by cust_id
+--------------
+
++---------+----------------+
+| cust_id | cust_name_last |
++---------+----------------+
+|  227105 | Kafka          |
+|  267780 | Shelly         |
++---------+----------------+
+2 rows in set (0.00 sec)
+
+--------------
+      
+/*  TASK 03 */
+select *
+from a_bkinfo.authors A
+where exists (
+      select 1
+      from a_bkinfo.book_authors BA
+      where BA.author_id = A.author_id
+	  and book_id in(
+            select book_id
+            from a_bkinfo.books
+            where book_id not in (
+                  select book_id
+                  from a_bkorders.order_details))
+      group by author_id
+      having count(book_id) > 1)
+order by author_id
+--------------
+
++-------------------+------------------+-----------+
+| author_name_first | author_name_last | author_id |
++-------------------+------------------+-----------+
+| Willie            | Mammoth          | M3110     |
+| Pete              | Moss             | M4540     |
++-------------------+------------------+-----------+
+2 rows in set (0.02 sec)
+
+--------------
+/*  TASK 04 */
+select book_id, title
+from a_bkinfo.books
+where book_id in (
+      select book_id
+      from a_bkinfo.book_topics
+      where topic_id in ('PGM','VB','NET','ADO')
+      group by book_id
+      having count(topic_id) = 2)
+order by book_id
+--------------
+
++---------+-------------------------------------------------+
+| book_id | title                                           |
++---------+-------------------------------------------------+
+|    1101 | Programming SQL Server with VB.NET              |
+|    1102 | Practical Standards for VB.NET                  |
+|    1278 | Beginning VB 2008 Databases                     |
+|    1279 | Data-Driven Services with Silverlight 2         |
+|    1670 | Applied .NET Framework Programming VB.NET       |
+|    1678 | Pro .NET 2.0 Windows Forms and Controls VB 2005 |
+|    1689 | Programming Visual Basic 2005: The Language     |
+|    1979 | Pro VB 2008 and the .NET 3.5 Platform           |
++---------+-------------------------------------------------+
+8 rows in set (0.00 sec)
+
+--------------
+/*  TASK 05 */
+select order_date "order date"
+, order_id "order id"
+, cust_id "customer id"
+, (select cust_name_last
+   from a_bkorders.customers C
+   where C.cust_id = OH.cust_id) "customer"
+, (select sum(quantity) 
+   from a_bkorders.order_details OD
+   where OD.order_id = OH.order_id
+   group by order_id) "NumberBooks"
+, (select sum(quantity * order_price)
+   from a_bkorders.order_details OD
+   where OD.order_id = OH.order_id
+   group by order_id) "OrderCost"
+from a_bkorders.order_headers OH
+where concat(quarter(order_date), year(order_date)) = concat(2, year(current_date()))
+order by order_date
+--------------
+
++------------+----------+-------------+--------------+-------------+-----------+
+| order date | order id | customer id | customer     | NumberBooks | OrderCost |
++------------+----------+-------------+--------------+-------------+-----------+
+| 2014-04-02 |    41853 |      234138 | Keats        |          30 |    999.00 |
+| 2014-04-05 |    31455 |      212921 | Books on Tap |           1 |     40.49 |
+| 2014-04-08 |     1256 |      272787 | Carlson      |           3 |     69.00 |
+| 2014-04-15 |    31560 |      276381 | Collins      |           1 |     40.49 |
+| 2014-05-01 |    23890 |      212921 | Books on Tap |          11 |    165.00 |
+| 2014-05-02 |    25803 |      224038 | Austin       |          45 |   2107.45 |
+| 2014-05-04 |    22774 |      239427 | Marksa       |         100 |   2749.50 |
+| 2014-05-05 |    42891 |      228175 | Cardin       |           1 |     15.00 |
+| 2014-05-05 |    10812 |      260368 | Muller       |           1 |     49.95 |
+| 2014-05-06 |    24802 |      228175 | Cardin       |           8 |   1295.60 |
+| 2014-05-24 |    42331 |      212921 | Books on Tap |           5 |     75.00 |
+| 2014-05-26 |    24345 |      224038 | Austin       |          10 |   1475.60 |
+| 2014-06-02 |    32905 |      259906 | Capybara     |           1 |     58.00 |
+| 2014-06-02 |    21841 |      267780 | Shelly       |          50 |   1250.00 |
+| 2014-06-02 |    21850 |      261502 | Hawthorne    |           2 |     55.49 |
+| 2014-06-02 |    32903 |      226656 | Randall      |           1 |     58.00 |
+| 2014-06-04 |    32904 |      259906 | Capybara     |         454 |   2454.26 |
+| 2014-06-12 |     1553 |      227105 | Kafka        |         300 |   6900.00 |
+| 2014-06-15 |    30814 |      272787 | Carlson      |          23 |    276.00 |
+| 2014-06-16 |    30815 |      272787 | Carlson      |         155 |   3875.00 |
+| 2014-06-18 |     2045 |      267780 | Shelly       |           1 |     35.99 |
+| 2014-06-18 |     1555 |      221297 | Dodgson      |          12 |    564.95 |
+| 2014-06-18 |     2200 |      261502 | Hawthorne    |          15 |    542.60 |
+| 2014-06-20 |     1554 |      290298 | Swift        |        NULL |      NULL |
+| 2014-06-22 |     1561 |      222477 | Rossetti     |           7 |    308.70 |
+| 2014-06-23 |     1254 |      263119 | Jones        |          20 |    859.50 |
+| 2014-06-28 |     1261 |      200368 | Blake        |         250 |   9742.50 |
+| 2014-06-28 |     1562 |      267780 | Shelly       |           8 |    299.70 |
+| 2014-06-28 |     1255 |      267780 | Shelly       |          12 |    564.95 |
++------------+----------+-------------+--------------+-------------+-----------+
+29 rows in set (0.00 sec)
+
+--------------
+/* TASK 06 */
+select book_id
+, substring(title, 1, 15) "title"
+, coalesce(
+  (select topic_id
+   from a_bkinfo.book_topics TS
+   where TS.book_id = B.book_id
+   group by book_id), 'No topic') "topic"
+from a_bkinfo.books B
+where  book_id in (
+       select book_id
+       from a_bkorders.order_details OD
+       where OD.book_id = B.book_id
+       group by book_id
+       having count(distinct order_id) > 10)
+order by book_id
+--------------
+
++---------+-----------------+-------+
+| book_id | title           | topic |
++---------+-----------------+-------+
+|    1103 | Selected Poems  | POE   |
+|    1106 | SQL for Smartie | SQL   |
+|    1128 | Temporal Data a | DB    |
+|    1142 | Relational Data | DB    |
+|    1161 | SQL Programming | SQL   |
+|    1162 | Trees and Hiera | SQL   |
+|    1279 | Data-Driven Ser | NET   |
+|    1448 | Backyard Birdso | SCI   |
+|    2001 | Programming SQL | SSRV  |
+|    2008 | SQL Server 2005 | SQL   |
+|    2009 | SQL Server 2005 | SQL   |
++---------+-----------------+-------+
+11 rows in set (0.06 sec)
+
+--------------
+/* TASK 07 */
+select cust_id, cust_name_last
+from (select cust_id
+      , cust_name_last
+      , (select count(order_id)
+         from a_bkorders.order_headers OH
+         where OH.cust_id = C.cust_id
+         and concat(quarter(order_date), year(order_date)) = concat(3, year(current_date()))
+         group by cust_id) "orderCount3"
+      , (select count(order_id)
+         from a_bkorders.order_headers OH
+         where OH.cust_id = C.cust_id
+         and concat(quarter(order_date), year(order_date)) = concat(2, year(current_date()))
+         group by cust_id) "orderCount2"
+      from a_bkorders.customers C
+      where cust_id in (
+            select cust_id
+            from a_bkorders.order_headers
+            where concat(quarter(order_date), year(order_date)) = concat(3, year(current_date())))
+      and cust_id in (
+            select cust_id
+            from a_bkorders.order_headers
+            where concat(quarter(order_date), year(order_date)) = concat(2, year(current_date())))
+      ) tbl1            
+where `orderCount3` > `orderCount2`
+order by cust_id
+--------------
+
++---------+----------------+
+| cust_id | cust_name_last |
++---------+----------------+
+|  222477 | Rossetti       |
+|  227105 | Kafka          |
+|  239427 | Marksa         |
+|  259906 | Capybara       |
+|  261502 | Hawthorne      |
+|  263119 | Jones          |
+|  267780 | Shelly         |
+|  272787 | Carlson        |
+|  290298 | Swift          |
++---------+----------------+
+9 rows in set (0.02 sec)
+
+Bye

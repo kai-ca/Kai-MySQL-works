@@ -1,0 +1,310 @@
+--------------
+/* Kai Yun Pekarsky */
+
+    /* enable warnings! */
+
+use a_bkinfo
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+/*  TASK 00 */ 
+
+select user(), current_date(), version(), @@sql_mode
+--------------
+
+*************************** 1. row ***************************
+        user(): a_kai@localhost
+current_date(): 2014-11-23
+     version(): 5.6.20
+    @@sql_mode: NO_ENGINE_SUBSTITUTION
+1 row in set (0.00 sec)
+
+--------------
+/* Function source code */
+show create function a_bkinfo.AdjustedPrice
+--------------
+
+*************************** 1. row ***************************
+            Function: AdjustedPrice
+            sql_mode: NO_ENGINE_SUBSTITUTION
+     Create Function: CREATE DEFINER=`a_kai`@`localhost` FUNCTION `AdjustedPrice`(
+    in_book_price numeric(6,2)
+  , in_quantity_ordered int
+) RETURNS decimal(7,2)
+begin
+    declare v_discount_rate numeric(4,2);
+    declare v_adjusted_price numeric(7,2);
+    
+    if (in_quantity_ordered between 0 and 3) then
+        set v_discount_rate = 0;
+    elseif (in_quantity_ordered between 4 and 10) then
+        set v_discount_rate = 0.05;
+    elseif (in_quantity_ordered between 11 and 25) then
+        set v_discount_rate = 0.10;
+    elseif (in_quantity_ordered between 26 and 100) then
+        set v_discount_rate = 0.15;
+    else
+        set v_discount_rate = 0.18;
+    end if;
+
+    if (in_book_price < 0) then
+        set v_adjusted_price = null;
+    elseif (in_quantity_ordered < 0) then
+        set v_adjusted_price = null;
+    elseif (in_book_price between 0 and 10) then
+        set v_adjusted_price = in_book_price;
+    else
+        set v_adjusted_price = in_book_price * ( 1 - v_discount_rate );
+    end if;
+
+    return v_adjusted_price;   
+
+end
+character_set_client: cp850
+collation_connection: cp850_general_ci
+  Database Collation: latin1_swedish_ci
+1 row in set (0.00 sec)
+
+--------------
+/*  TASK 01 */
+select testrun
+, price
+, quantity
+, expected
+, a_bkinfo.AdjustedPrice(price, quantity) "Actual"
+, expected - a_bkinfo.AdjustedPrice(price, quantity) "Problem"
+from (
+    select 1 as testrun, 9.2 as price, 30 as quantity, 9.2 as expected
+  union all
+    select 2, 10.50, 3, 10.50
+  union all
+    select 3, 20.50, 6, 19.48
+  union all
+    select 4, 30, 24, 27
+  union all
+    select 5, 56, 26, 47.60
+  union all
+    select 6, 70, 105, 57.40
+  union all
+    select 7, 33, 0, 33
+) as testTbl
+--------------
+
++---------+-------+----------+----------+--------+---------+
+| testrun | price | quantity | expected | Actual | Problem |
++---------+-------+----------+----------+--------+---------+
+|       1 |  9.20 |       30 |     9.20 |   9.20 |    0.00 |
+|       2 | 10.50 |        3 |    10.50 |  10.50 |    0.00 |
+|       3 | 20.50 |        6 |    19.48 |  19.48 |    0.00 |
+|       4 | 30.00 |       24 |    27.00 |  27.00 |    0.00 |
+|       5 | 56.00 |       26 |    47.60 |  47.60 |    0.00 |
+|       6 | 70.00 |      105 |    57.40 |  57.40 |    0.00 |
+|       7 | 33.00 |        0 |    33.00 |  33.00 |    0.00 |
++---------+-------+----------+----------+--------+---------+
+7 rows in set (0.00 sec)
+
+--------------
+/*  TASK 02 */
+select order_id
+, book_id
+, List
+, quantity
+, ExpctdPrice
+, OrdPrice
+, PricingError
+from (
+    select order_id
+    , book_id
+    , list_price "List"
+    , quantity
+    , a_bkinfo.AdjustedPrice(list_price, quantity) "ExpctdPrice"
+    , order_price "OrdPrice"
+    , a_bkinfo.AdjustedPrice(list_price, quantity) - order_price "PricingError"
+    from a_bkorders.order_details
+    join a_bkinfo.books using (book_id)
+    order by book_id
+) as tbl1
+where PricingError > 0.2 * ExpctdPrice
+order by book_id, order_id
+--------------
+
++----------+---------+-------+----------+-------------+----------+--------------+
+| order_id | book_id | List  | quantity | ExpctdPrice | OrdPrice | PricingError |
++----------+---------+-------+----------+-------------+----------+--------------+
+|     1027 |    1077 | 40.25 |       22 |       36.23 |    10.99 |        25.24 |
+|     1661 |    1103 | 12.00 |       97 |       10.20 |     2.00 |         8.20 |
+|    32906 |    1103 | 12.00 |        1 |       12.00 |     5.75 |         6.25 |
+|    52906 |    1103 | 12.00 |        1 |       12.00 |     5.75 |         6.25 |
+|     1004 |    1106 | 29.00 |        2 |       29.00 |    18.25 |        10.75 |
+|     1420 |    1109 | 80.00 |       30 |       68.00 |    25.00 |        43.00 |
+|    21850 |    1109 | 80.00 |        1 |       80.00 |    25.00 |        55.00 |
+|    31889 |    1109 | 80.00 |       18 |       72.00 |    50.60 |        21.40 |
+|    33001 |    1109 | 80.00 |        3 |       80.00 |    25.00 |        55.00 |
+|     1411 |    1128 | 49.95 |       50 |       42.46 |    25.00 |        17.46 |
+|     1442 |    1128 | 49.95 |       25 |       44.96 |    12.50 |        32.46 |
+|    32800 |    1128 | 49.95 |       50 |       42.46 |    25.00 |        17.46 |
+|    32899 |    1128 | 49.95 |       50 |       42.46 |    25.00 |        17.46 |
+|    42899 |    1128 | 49.95 |        5 |       47.45 |    25.00 |        22.45 |
+|     1005 |    1142 | 95.00 |        2 |       95.00 |    42.45 |        52.55 |
+|     1255 |    1142 | 95.00 |        5 |       90.25 |    39.00 |        51.25 |
+|     1261 |    1142 | 95.00 |      100 |       80.75 |    34.95 |        45.80 |
+|     1555 |    1142 | 95.00 |        5 |       90.25 |    39.00 |        51.25 |
+|     1561 |    1142 | 95.00 |        1 |       95.00 |    34.95 |        60.05 |
+|     5261 |    1142 | 95.00 |      100 |       80.75 |    34.95 |        45.80 |
+|     5555 |    1142 | 95.00 |        5 |       90.25 |    39.00 |        51.25 |
+|     5561 |    1142 | 95.00 |        1 |       95.00 |    34.95 |        60.05 |
+|    21255 |    1142 | 95.00 |        5 |       90.25 |    39.00 |        51.25 |
+|    21261 |    1142 | 95.00 |      100 |       80.75 |    34.95 |        45.80 |
+|    32891 |    1142 | 95.00 |        5 |       90.25 |    15.00 |        75.25 |
+|    32907 |    1142 | 95.00 |       10 |       90.25 |    11.14 |        79.11 |
+|    33009 |    1142 | 95.00 |        5 |       90.25 |    39.00 |        51.25 |
+|    41005 |    1142 | 95.00 |        2 |       95.00 |    42.45 |        52.55 |
+|    41006 |    1142 | 95.00 |       10 |       90.25 |    42.95 |        47.30 |
+|    42331 |    1142 | 95.00 |        5 |       90.25 |    15.00 |        75.25 |
+|    42891 |    1142 | 95.00 |        1 |       95.00 |    15.00 |        80.00 |
+|    18142 |    1279 | 44.99 |        1 |       44.99 |    26.99 |        18.00 |
+|    18144 |    1304 | 59.99 |        1 |       59.99 |    45.99 |        14.00 |
+|    32900 |    1305 |  9.99 |      125 |        9.99 |     5.00 |         4.99 |
+|    32902 |    1305 |  9.99 |       49 |        9.99 |     6.00 |         3.99 |
+|    32904 |    1305 |  9.99 |      450 |        9.99 |     5.19 |         4.80 |
+|    33013 |    1305 |  9.99 |       49 |        9.99 |     6.00 |         3.99 |
+|    52900 |    1305 |  9.99 |      125 |        9.99 |     5.00 |         4.99 |
+|     1200 |    1457 | 79.99 |        5 |       75.99 |    53.99 |        22.00 |
+|    32997 |    1457 | 79.99 |        5 |       75.99 |    53.99 |        22.00 |
+|    51854 |    1537 | 29.95 |       15 |       26.96 |    15.37 |        11.59 |
+|    30855 |    1602 |  2.95 |      500 |        2.95 |     2.00 |         0.95 |
+|    33025 |    1602 |  2.95 |       97 |        2.95 |     2.00 |         0.95 |
+|    33034 |    1619 | 29.99 |        2 |       29.99 |    15.95 |        14.04 |
+|    33040 |    1626 | 25.95 |        1 |       25.95 |    19.95 |         6.00 |
+|     1212 |    1894 | 39.99 |        1 |       39.99 |    18.75 |        21.24 |
+|    51843 |    1894 | 39.99 |        1 |       39.99 |    18.75 |        21.24 |
+|     1028 |    2001 | 49.99 |        1 |       49.99 |    19.78 |        30.21 |
+|     1262 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|     1491 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|     1561 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|     1562 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|     1603 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|     5262 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|     5491 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|     5561 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|     5562 |    2001 | 49.99 |        1 |       49.99 |    39.00 |        10.99 |
+|    32892 |    2002 | 39.99 |        5 |       37.99 |    15.00 |        22.99 |
+|     1410 |    2006 | 44.99 |       35 |       38.24 |    20.00 |        18.24 |
+|    32898 |    2006 | 44.99 |        3 |       44.99 |    20.00 |        24.99 |
+|    32998 |    2006 | 44.99 |        3 |       44.99 |    20.00 |        24.99 |
+|    30848 |    2007 | 44.99 |        2 |       44.99 |    12.50 |        32.49 |
+|     1442 |    2008 | 59.99 |       40 |       50.99 |    34.95 |        16.04 |
+|     1562 |    2008 | 59.99 |        1 |       59.99 |    46.95 |        13.04 |
+|     1605 |    2008 | 59.99 |        1 |       59.99 |    39.00 |        20.99 |
+|     1800 |    2008 | 59.99 |        1 |       59.99 |    46.95 |        13.04 |
+|     5562 |    2008 | 59.99 |        1 |       59.99 |    46.95 |        13.04 |
+|    30836 |    2008 | 59.99 |        2 |       59.99 |    12.50 |        47.49 |
+|    40836 |    2008 | 59.99 |        2 |       59.99 |    12.50 |        47.49 |
+|     2013 |    2009 | 29.99 |        2 |       29.99 |    12.50 |        17.49 |
+|    51852 |    2017 | 49.99 |        1 |       49.99 |     0.00 |        49.99 |
+|     1040 |    2025 | 59.99 |      560 |       49.19 |    39.00 |        10.19 |
+|    51852 |    2032 | 55.99 |        1 |       55.99 |     0.00 |        55.99 |
++----------+---------+-------+----------+-------------+----------+--------------+
+73 rows in set (0.06 sec)
+
+--------------
+/* Function source code */
+show create function a_bkinfo.PrevMonth
+--------------
+
+*************************** 1. row ***************************
+            Function: PrevMonth
+            sql_mode: NO_ENGINE_SUBSTITUTION
+     Create Function: CREATE DEFINER=`a_kai`@`localhost` FUNCTION `PrevMonth`(
+    in_date date
+  , in_mn_adjust int
+) RETURNS varchar(7) CHARSET latin1
+begin
+    declare v_adjusted_month varchar(7);
+        
+    if in_date is null then
+        set in_date = current_date();
+    end if;
+    
+    if in_mn_adjust < 0 then
+        set v_adjusted_month = null;
+    else
+        set v_adjusted_month = date_format(date_sub(in_date, interval in_mn_adjust month), '%Y-%m');
+    end if;
+
+    return v_adjusted_month;
+
+end
+character_set_client: cp850
+collation_connection: cp850_general_ci
+  Database Collation: latin1_swedish_ci
+1 row in set (0.00 sec)
+
+--------------
+      
+/*  TASK 03 */
+set @m1 = a_bkinfo.PrevMonth(current_date,4)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @m2 = a_bkinfo.PrevMonth(current_date,3)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @m3 = a_bkinfo.PrevMonth(current_date,2)
+--------------
+
+Query OK, 0 rows affected (0.01 sec)
+
+--------------
+select distinct cust_id "customer id"
+, concat(cust_name_last, ', ', cust_name_first) "customer name"
+from a_bkorders.order_headers
+join a_bkorders.customers using (cust_id)
+where cust_id in (
+    select cust_id
+    from a_bkorders.order_headers
+    where date_format(order_date, '%Y-%m') = @m1)
+    and cust_id in (
+    select cust_id
+    from a_bkorders.order_headers
+    where date_format(order_date, '%Y-%m') = @m2)
+    and cust_id in (
+    select cust_id
+    from a_bkorders.order_headers
+    where date_format(order_date, '%Y-%m') = @m3)
+--------------
+
++-------------+----------------------+
+| customer id | customer name        |
++-------------+----------------------+
+|      218709 | Bonnard, Paul        |
+|      227105 | Kafka, Franz         |
+|      261502 | Hawthorne, Nathaniel |
++-------------+----------------------+
+3 rows in set (0.02 sec)
+
+--------------
+    
+/*  TASK 04 */
+select count(order_id) "NumberOrders"
+, count(distinct cust_id) "NumberCustWithOrders"
+from a_bkorders.order_headers
+where date_format(order_date, '%Y-%m') = a_bkinfo.PrevMonth(null, 2)
+      or date_format(order_date, '%Y-%m') = a_bkinfo.PrevMonth(null, 1)
+--------------
+
++--------------+----------------------+
+| NumberOrders | NumberCustWithOrders |
++--------------+----------------------+
+|           43 |                   21 |
++--------------+----------------------+
+1 row in set (0.01 sec)
+
+Bye

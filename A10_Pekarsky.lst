@@ -1,0 +1,362 @@
+--------------
+/* Kai Yun Pekarsky */
+
+    /* enable warnings! */
+
+/*  TASK 00 */ 
+select user(), current_date(), version(), @@sql_mode
+--------------
+
+*************************** 1. row ***************************
+        user(): a_kai@localhost
+current_date(): 2014-10-24
+     version(): 5.6.20
+    @@sql_mode: NO_ENGINE_SUBSTITUTION
+1 row in set (0.06 sec)
+
+--------------
+/*  TASK 01 */
+set @rundate = current_date()
+--------------
+
+Query OK, 0 rows affected (0.03 sec)
+
+--------------
+set @months_underD_first = date_sub(@rundate, interval 4 month)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @months_underD_second = date_sub(@rundate, interval 3 month)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @months_underD_third = date_sub(@rundate, interval 2 month)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @Yr_first = year(@months_underD_first)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @M_first = month(@months_underD_first)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @Yr_second = year(@months_underD_second)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @M_second = month(@months_underD_second)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @Yr_third = year(@months_underD_third)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @M_third = month(@months_underD_third)
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+select @rundate
+, @months_underD_first
+, @months_underD_second
+, @months_underD_third
+, @Yr_first
+, @M_first
+, @Yr_second
+, @M_second
+, @Yr_third
+, @M_third
+--------------
+
++------------+----------------------+-----------------------+----------------------+-----------+----------+------------+-----------+-----------+----------+
+| @rundate   | @months_underD_first | @months_underD_second | @months_underD_third | @Yr_first | @M_first | @Yr_second | @M_second | @Yr_third | @M_third |
++------------+----------------------+-----------------------+----------------------+-----------+----------+------------+-----------+-----------+----------+
+| 2014-10-24 | 2014-06-24           | 2014-07-24            | 2014-08-24           |      2014 |        6 |       2014 |         7 |      2014 |        8 |
++------------+----------------------+-----------------------+----------------------+-----------+----------+------------+-----------+-----------+----------+
+1 row in set (0.00 sec)
+
+--------------
+/*  TASK 02 */
+select c_id, c_name
+from a_bkorders.CustWithOrders
+where year(order_date) = @Yr_first
+and month(order_date) = @M_first
+union
+select c_id, c_name
+from a_bkorders.CustWithOrders
+where year(order_date) = @Yr_second
+and month(order_date) = @M_second
+union
+select c_id, c_name
+from a_bkorders.CustWithOrders
+where year(order_date) = @Yr_third
+and month(order_date) = @M_third
+--------------
+
++--------+----------------------+
+| c_id   | c_name               |
++--------+----------------------+
+| 200368 | Blake, William       |
+| 221297 | Dodgson, Charles     |
+| 222477 | Rossetti, Christina  |
+| 226656 | Randall, Randell     |
+| 227105 | Kafka, Franz         |
+| 259906 | Capybara, Wile E.    |
+| 261502 | Hawthorne, Nathaniel |
+| 263119 | Jones                |
+| 267780 | Shelly, Mary         |
+| 272787 | Carlson, Ben         |
+| 218709 | Bonnard, Paul        |
+| 239427 | Marksa, Anna         |
+| 290298 | Swift, Jonathan      |
++--------+----------------------+
+13 rows in set (0.00 sec)
+
+--------------
+/*  TASK 03 */
+select distinct c_id, c_name
+from a_bkorders.CustWithOrders
+where c_id not in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) in (@Yr_first, @Yr_second, @Yr_third)
+      and month(order_date) in (@M_first, @M_second, @M_third))
+--------------
+
++--------+---------------------+
+| c_id   | c_name              |
++--------+---------------------+
+| 208950 | Adams, Samuel       |
+| 211483 | Carroll, Lewis      |
+| 212921 | Books on Tap        |
+| 217796 | Anders              |
+| 224038 | Austin, Pat         |
+| 228175 | Cardin, Benjamin    |
+| 234138 | Keats, John         |
+| 234709 | Brahms, Johnnie     |
+| 258595 | Jobs, Peter         |
+| 259969 | Carlsen, Benny      |
+| 260368 | Muller, Jonathan    |
+| 272611 | Jarrett, Keith      |
+| 276381 | Collins, Douglas    |
+| 282716 | Biederbecke, Dwight |
+| 296598 | Collins, Douglas    |
+| 299099 | Sam, Dave           |
++--------+---------------------+
+16 rows in set (0.01 sec)
+
+--------------
+/*  TASK 04 */
+select distinct c_id, c_name
+from a_bkorders.CustWithOrders
+where c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_first
+      and month(order_date) = @M_first)
+      and c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_second
+      and month(order_date) = @M_second)
+      and c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_third
+      and month(order_date) = @M_third)
+--------------
+
++--------+----------------------+
+| c_id   | c_name               |
++--------+----------------------+
+| 222477 | Rossetti, Christina  |
+| 227105 | Kafka, Franz         |
+| 259906 | Capybara, Wile E.    |
+| 261502 | Hawthorne, Nathaniel |
+| 267780 | Shelly, Mary         |
++--------+----------------------+
+5 rows in set (0.02 sec)
+
+--------------
+/*  TASK 05 */
+select distinct c_id, c_name
+from a_bkorders.CustWithOrders
+where c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_first
+      and month(order_date) = @M_first)
+      and c_id not in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_second
+      and month(order_date) = @M_second)
+      and c_id not in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_third
+      and month(order_date) = @M_third)
+--------------
+
++--------+------------------+
+| c_id   | c_name           |
++--------+------------------+
+| 221297 | Dodgson, Charles |
++--------+------------------+
+1 row in set (0.00 sec)
+
+--------------
+      
+/* TASK 06 */
+select distinct c_id, c_name
+from a_bkorders.CustWithOrders
+where c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_first
+      and month(order_date) = @M_first)
+      and c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) in (@Yr_second, @Yr_third)
+      and month(order_date) in (@M_second, @M_third))
+--------------
+
++--------+----------------------+
+| c_id   | c_name               |
++--------+----------------------+
+| 200368 | Blake, William       |
+| 222477 | Rossetti, Christina  |
+| 226656 | Randall, Randell     |
+| 227105 | Kafka, Franz         |
+| 259906 | Capybara, Wile E.    |
+| 261502 | Hawthorne, Nathaniel |
+| 263119 | Jones                |
+| 267780 | Shelly, Mary         |
+| 272787 | Carlson, Ben         |
++--------+----------------------+
+9 rows in set (0.02 sec)
+
+--------------
+/* TASK 07 */
+select distinct c_id, c_name
+from a_bkorders.CustWithOrders
+where c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_first
+      and month(order_date) = @M_first)
+      and (c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_second
+      and month(order_date) = @M_second)
+      xor c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_third
+      and month(order_date) = @M_third))
+--------------
+
++--------+------------------+
+| c_id   | c_name           |
++--------+------------------+
+| 200368 | Blake, William   |
+| 226656 | Randall, Randell |
+| 263119 | Jones            |
+| 272787 | Carlson, Ben     |
++--------+------------------+
+4 rows in set (0.00 sec)
+
+--------------
+/* TASK 08 */
+select distinct c_id, c_name
+from a_bkorders.CustWithOrders
+where c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) in (@Yr_first, @Yr_second)
+      and month(order_date) in (@M_first, @M_second))
+      and c_id not in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_third
+      and month(order_date) = @M_third)
+--------------
+
++--------+------------------+
+| c_id   | c_name           |
++--------+------------------+
+| 221297 | Dodgson, Charles |
+| 239427 | Marksa, Anna     |
+| 272787 | Carlson, Ben     |
+| 290298 | Swift, Jonathan  |
++--------+------------------+
+4 rows in set (0.00 sec)
+
+--------------
+/* TASK 09 */
+select distinct c_id, c_name
+from a_bkorders.CustWithOrders
+where c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_first
+      and month(order_date) = @M_first)
+      and c_id not in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) in (@Yr_second, @Yr_third)
+      and month(order_date) in (@M_second, @M_third))
+      or c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_second
+      and month(order_date) = @M_second)
+      and c_id not in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) in (@Yr_first, @Yr_third)
+      and month(order_date) in (@M_first, @M_third))
+      or c_id in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) = @Yr_third
+      and month(order_date) = @M_third)
+      and c_id not in (
+      select c_id
+      from a_bkorders.CustWithOrders
+      where year(order_date) in (@Yr_first, @Yr_second)
+      and month(order_date) in (@M_first, @M_second))
+--------------
+
++--------+------------------+
+| c_id   | c_name           |
++--------+------------------+
+| 221297 | Dodgson, Charles |
+| 239427 | Marksa, Anna     |
+| 290298 | Swift, Jonathan  |
++--------+------------------+
+3 rows in set (0.02 sec)
+
+Bye

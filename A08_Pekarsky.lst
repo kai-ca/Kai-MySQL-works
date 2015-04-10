@@ -1,0 +1,136 @@
+--------------
+/* Kai Yun Pekarsky */
+
+    /* enable warnings! */
+
+use a_plants
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+/*  TASK 00 */ 
+select user(), current_date(), version(), @@sql_mode
+--------------
+
+*************************** 1. row ***************************
+        user(): a_kai@localhost
+current_date(): 2014-10-09
+     version(): 5.6.20
+    @@sql_mode: NO_ENGINE_SUBSTITUTION
+1 row in set (0.01 sec)
+
+--------------
+/*  TASK 01 */
+select distinct cust_id "Customer ID", cust_name_last "Customer Last Name"
+from a_plants.customers
+join a_plants.order_headers using (cust_id)
+where order_date between '1995-01-01' and '1995-12-31'
+or order_date between '2010-01-01' and '2010-12-31'
+or order_date between '2012-01-01' and '2012-12-31'
+--------------
+
+Empty set (0.00 sec)
+
+--------------
+/*  TASK 02 */
+select cust_id "cust_ID"
+, order_date 
+, case
+      when DateDiff(current_date(), order_date) < 14 then 'Less than 14 days' 
+      when DateDiff(current_date(), order_date) < 30 then 'Less than 30 days'
+      when DateDiff(current_date(), order_date) < 90 then 'Less than 90 days'
+      when DateDiff(current_date(), order_date) < 180 then 'Less than 180 days'
+  else '180 days or more'
+  end "orderAged"
+from a_plants.order_headers
+where order_date < current_date()
+order by cust_id, order_date
+--------------
+
++---------+------------+--------------------+
+| cust_ID | order_date | orderAged          |
++---------+------------+--------------------+
+|    3009 | 2013-09-03 | 180 days or more   |
+|    3009 | 2014-07-31 | Less than 90 days  |
+|    3009 | 2014-10-01 | Less than 14 days  |
+|    3010 | 2014-06-30 | Less than 180 days |
+|    3012 | 2013-07-22 | 180 days or more   |
+|    3012 | 2013-08-01 | 180 days or more   |
+|    3012 | 2013-08-02 | 180 days or more   |
+|    3012 | 2013-08-03 | 180 days or more   |
++---------+------------+--------------------+
+8 rows in set (0.00 sec)
+
+--------------
+/*  TASK 03 */
+select cust_id "customer id"
+, order_id "order id"
+, order_date "order date"
+from a_plants.order_headers
+where order_date = Last_day(order_date)
+--------------
+
++-------------+----------+------------+
+| customer id | order id | order date |
++-------------+----------+------------+
+|        3010 |     5101 | 2014-06-30 |
+|        3009 |     5102 | 2014-07-31 |
++-------------+----------+------------+
+2 rows in set (0.00 sec)
+
+--------------
+/*  TASK 04 */
+select distinct plant_id "plant id"
+, concat(genus, ' ', species) "scientific name"
+from a_plants.plant_taxonomy
+right join a_plants.plants using (plant_id)
+join a_plants.order_details using (plant_id)
+join a_plants.order_headers using (order_id)
+where month(order_date) = 09
+or month(order_date) = 10
+--------------
+
++----------+--------------------------+
+| plant id | scientific name          |
++----------+--------------------------+
+|     1004 | Anemone nemorosa         |
+|     2023 | Cirsium perplexans       |
+|     1009 | Ranunuculus sceleratus   |
+|     1010 | Eschscholzia californica |
+|     2022 | NULL                     |
++----------+--------------------------+
+5 rows in set (0.00 sec)
+
+--------------
+/*  TASK 05 */
+set @p = last_day(date_sub(current_date(), interval 7 month))
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+set @p2 = last_day(date_sub(current_date(), interval 1 month))
+--------------
+
+Query OK, 0 rows affected (0.00 sec)
+
+--------------
+select cust_id "customer id"
+, cust_name_last "customer last name"
+, order_date "order date"
+from a_plants.customers
+join a_plants.order_headers using (cust_id)
+where order_date > @p
+and order_date <= @p2
+--------------
+
++-------------+--------------------+------------+
+| customer id | customer last name | order date |
++-------------+--------------------+------------+
+|        3009 | Peterson           | 2014-07-31 |
+|        3010 | LaVette            | 2014-06-30 |
++-------------+--------------------+------------+
+2 rows in set (0.00 sec)
+
+Bye

@@ -1,0 +1,318 @@
+--------------
+/* Kai Yun Pekarsky */
+
+    /* enable warnings! */
+
+/*  TASK 00 */ 
+select user(), current_date(), version(), @@sql_mode
+--------------
+
+*************************** 1. row ***************************
+        user(): a_kai@localhost
+current_date(): 2014-10-31
+     version(): 5.6.20
+    @@sql_mode: NO_ENGINE_SUBSTITUTION
+1 row in set (0.14 sec)
+
+--------------
+/*  TASK 01 */
+select cust_id "CustID"
+, cust_name_last "CustName"
+, count(distinct order_id) "NumberOrders"
+, sum(quantity) "TotalNumberBookCopies"
+from a_bkorders.customers
+join a_bkorders.order_headers using (cust_id)
+join a_bkorders.order_details using (order_id)
+group by cust_id
+order by cust_id
+--------------
+
++--------+--------------+--------------+-----------------------+
+| CustID | CustName     | NumberOrders | TotalNumberBookCopies |
++--------+--------------+--------------+-----------------------+
+| 200368 | Blake        |            7 |                   861 |
+| 208950 | Adams        |            1 |                    10 |
+| 211483 | Carroll      |            5 |                   102 |
+| 212921 | Books on Tap |           11 |                   153 |
+| 217796 | Anders       |           11 |                   254 |
+| 218709 | Bonnard      |           12 |                   327 |
+| 221297 | Dodgson      |            8 |                    64 |
+| 222477 | Rossetti     |           10 |                    74 |
+| 224038 | Austin       |            5 |                   111 |
+| 226656 | Randall      |            3 |                   291 |
+| 227105 | Kafka        |           14 |                  1567 |
+| 228175 | Cardin       |            2 |                     9 |
+| 234138 | Keats        |            9 |                   191 |
+| 234709 | Brahms       |            3 |                    69 |
+| 239427 | Marksa       |           10 |                   402 |
+| 258595 | Jobs         |            2 |                     4 |
+| 259906 | Capybara     |            9 |                   746 |
+| 259969 | Carlsen      |            4 |                    16 |
+| 260368 | Muller       |            4 |                    16 |
+| 261502 | Hawthorne    |           19 |                   890 |
+| 263119 | Jones        |            5 |                   606 |
+| 267780 | Shelly       |           15 |                   213 |
+| 272611 | Jarrett      |            4 |                    15 |
+| 272787 | Carlson      |           20 |                   601 |
+| 276381 | Collins      |            7 |                   205 |
+| 282716 | Biederbecke  |           15 |                  1106 |
+| 290298 | Swift        |           12 |                   270 |
+| 296598 | Collins      |            1 |                     2 |
+| 299099 | Sam          |            3 |                   351 |
++--------+--------------+--------------+-----------------------+
+29 rows in set (0.92 sec)
+
+--------------
+/*  TASK 02 */
+select cust_id "CustID"
+, cust_name_last "CustName"
+, if(year(order_date) = year(current_date())-1, avg(quantity * order_price), 'no orders') "AverageAmntDue"
+, if(year(order_date) = year(current_date())-1, max(quantity * order_price), 'no orders') "HighestAmntDue"
+from a_bkorders.customers
+left join a_bkorders.order_headers using (cust_id)
+left join a_bkorders.order_details using (order_id)
+group by cust_id
+order by cust_id
+--------------
+
++--------+--------------+----------------+----------------+
+| CustID | CustName     | AverageAmntDue | HighestAmntDue |
++--------+--------------+----------------+----------------+
+| 200368 | Blake        | 2517.899231    | 3900.00        |
+| 202958 | Denver       | no orders      | no orders      |
+| 208950 | Adams        | 109.500000     | 109.50         |
+| 211483 | Carroll      | no orders      | no orders      |
+| 212921 | Books on Tap | 157.703846     | 682.50         |
+| 217002 | Grieg        | no orders      | no orders      |
+| 217796 | Anders       | 254.981600     | 1250.00        |
+| 218709 | Bonnard      | 387.531250     | 2525.00        |
+| 221297 | Dodgson      | 134.082632     | 551.90         |
+| 222477 | Rossetti     | 116.002917     | 900.00         |
+| 224038 | Austin       | 654.644545     | 1250.60        |
+| 226275 | Dalrymple    | no orders      | no orders      |
+| 226656 | Randall      | no orders      | no orders      |
+| 227105 | Kafka        | no orders      | no orders      |
+| 228175 | Cardin       | no orders      | no orders      |
+| 228275 | Mikulski     | no orders      | no orders      |
+| 228352 | Edwards      | no orders      | no orders      |
+| 234138 | Keats        | 304.097059     | 1250.00        |
+| 234709 | Brahms       | 332.677143     | 1049.79        |
+| 239427 | Marksa       | no orders      | no orders      |
+| 255919 | Milton       | no orders      | no orders      |
+| 258595 | Jobs         | no orders      | no orders      |
+| 259906 | Capybara     | no orders      | no orders      |
+| 259907 | Hedge        | no orders      | no orders      |
+| 259969 | Carlsen      | no orders      | no orders      |
+| 260368 | Muller       | 57.358750      | 119.98         |
+| 261502 | Hawthorne    | 1191.456429    | 16560.00       |
+| 263119 | Jones        | 2963.497500    | 21840.00       |
+| 267780 | Shelly       | no orders      | no orders      |
+| 272611 | Jarrett      | 119.406667     | 480.72         |
+| 272787 | Carlson      | 510.683214     | 3875.00        |
+| 276381 | Collins      | 696.110000     | 2000.00        |
+| 282716 | Biederbecke  | no orders      | no orders      |
+| 287261 | Biederbecke  | no orders      | no orders      |
+| 290298 | Swift        | 564.552778     | 3149.30        |
+| 296598 | Collins      | no orders      | no orders      |
+| 299099 | Sam          | no orders      | no orders      |
++--------+--------------+----------------+----------------+
+37 rows in set (0.25 sec)
+
+--------------
+/*  TASK 03 */
+set @pq = date_sub(current_date(), interval 3 month)
+--------------
+
+Query OK, 0 rows affected (0.05 sec)
+
+--------------
+select @pq
+--------------
+
++------------+
+| @pq        |
++------------+
+| 2014-07-31 |
++------------+
+1 row in set (0.02 sec)
+
+--------------
+select count(order_id) "NumberOrders"
+, count(distinct cust_id) "NumbeCustWithOrders"
+from a_bkorders.order_headers
+where year(order_date) = year(@pq)
+and quarter(order_date) = quarter(@pq)
+--------------
+
++--------------+---------------------+
+| NumberOrders | NumbeCustWithOrders |
++--------------+---------------------+
+|           55 |                  22 |
++--------------+---------------------+
+1 row in set (0.01 sec)
+
+--------------
+/*  TASK 04 */
+select book_id, title
+from a_bkinfo.books
+join a_bkinfo.book_topics using (book_id)
+join (select book_id, count(distinct order_id)
+      from a_bkorders.order_details
+      join a_bkinfo.books using (book_id)
+      join a_bkinfo.book_topics using (book_id)
+      where topic_id in ('FCT', 'POE')
+      group by book_id
+      having count(order_id) >= all
+             (select count(order_id)
+              from a_bkorders.order_details
+			  join a_bkinfo.books using (book_id)
+              join a_bkinfo.book_topics using (book_id)
+              where topic_id in ('FCT', 'POE')
+              group by book_id)
+      )order_count using (book_id)
+--------------
+
++---------+----------------+
+| book_id | title          |
++---------+----------------+
+|    1103 | Selected Poems |
++---------+----------------+
+1 row in set (0.36 sec)
+
+--------------
+/*  TASK 05 */
+select book_id, title, sum(quantity * order_price) "TotalSales"
+from a_bkinfo.books
+join a_bkorders.order_details using (book_id)
+join a_bkorders.order_headers using (order_id)
+where year(order_date) = year(current_date())-1
+group by book_id
+having sum(quantity * order_price) >= 300.00
+and sum(quantity * order_price) <= 900.00
+--------------
+
++---------+-----------------------------------------------+------------+
+| book_id | title                                         | TotalSales |
++---------+-----------------------------------------------+------------+
+|    1101 | Programming SQL Server with VB.NET            |     721.27 |
+|    1104 | Sibley Guide to Bird Life and Behavior        |     720.00 |
+|    1107 | SQL Puzzles and Answers                       |     893.00 |
+|    1161 | SQL Programming Style                         |     350.00 |
+|    1305 | Journeys Through Flatland                     |     499.50 |
+|    1627 | The Ants                                      |     480.72 |
+|    1629 | The Leafcutter Ants: Civilization by Instinct |     837.90 |
+|    1689 | Programming Visual Basic 2005: The Language   |     717.47 |
+|    1894 | Programming Visual Basic 2005                 |     348.26 |
+|    2009 | SQL Server 2005 Express Edition               |     554.24 |
++---------+-----------------------------------------------+------------+
+10 rows in set (0.19 sec)
+
+--------------
+/* TASK 06 */
+select count(distinct case when topic_id = 'CMP' then book_id else null end) "Computer Science"
+,      count(distinct case when topic_id in ('DB','SQL','SSRV','MySQL','ORA','ADO') then book_id else null end) "Database Systems"
+,      count(distinct case when topic_id in ('NOSQL','XML','DB') then book_id else null end) "Data Storage Techniques"
+,      count(distinct book_id) "All Books"
+from a_bkinfo.books
+left join a_bkinfo.book_topics using (book_id)
+--------------
+
++------------------+------------------+-------------------------+-----------+
+| Computer Science | Database Systems | Data Storage Techniques | All Books |
++------------------+------------------+-------------------------+-----------+
+|                0 |               39 |                      12 |        95 |
++------------------+------------------+-------------------------+-----------+
+1 row in set (0.02 sec)
+
+--------------
+/* TASK 07 */
+select date_format(order_date, '%Y-%b') "Year-month"
+, count(distinct order_id) "OrderCount"
+, sum(quantity * order_price) "TotalSales"
+from a_bkorders.order_headers
+join a_bkorders.order_details using (order_id)
+group by year(order_date), month(order_date)
+order by order_date
+--------------
+
++------------+------------+------------+
+| Year-month | OrderCount | TotalSales |
++------------+------------+------------+
+| 2013-Jul   |         34 |    5209.69 |
+| 2013-Aug   |         20 |   18285.32 |
+| 2013-Sep   |         77 |   47788.28 |
+| 2013-Oct   |         22 |   26304.55 |
+| 2013-Nov   |         11 |   17496.80 |
+| 2013-Dec   |         10 |     707.13 |
+| 2014-Jan   |         13 |    5248.35 |
+| 2014-Feb   |         11 |     703.07 |
+| 2014-Mar   |         40 |   14134.01 |
+| 2014-Apr   |          6 |    1148.98 |
+| 2014-May   |         13 |    7933.10 |
+| 2014-Jun   |         33 |   27845.64 |
+| 2014-Jul   |         27 |   10337.68 |
+| 2014-Aug   |         36 |   58522.36 |
+| 2014-Sep   |         39 |   17101.35 |
+| 2014-Oct   |         30 |   15647.38 |
++------------+------------+------------+
+16 rows in set (0.05 sec)
+
+--------------
+/* TASK 08 */
+select cust_id "Cust ID"
+, cust_name_last "Customer"
+, if(order_id is null, 'no orders', max(order_date)) "MostRecent"
+from a_bkorders.customers
+left join a_bkorders.order_headers using (cust_id)
+left join (select order_id, order_line
+           from a_bkorders.order_headers
+		   left join a_bkorders.order_details using (order_id)
+           where order_line is not null
+           ) new_details using (order_id)
+group by cust_id
+--------------
+
++---------+--------------+------------+
+| Cust ID | Customer     | MostRecent |
++---------+--------------+------------+
+|  200368 | Blake        | 2014-08-28 |
+|  202958 | Denver       | no orders  |
+|  208950 | Adams        | 2013-09-28 |
+|  211483 | Carroll      | 2014-10-24 |
+|  212921 | Books on Tap | 2014-09-16 |
+|  217002 | Grieg        | no orders  |
+|  217796 | Anders       | 2014-10-13 |
+|  218709 | Bonnard      | 2014-09-25 |
+|  221297 | Dodgson      | 2014-10-21 |
+|  222477 | Rossetti     | 2014-10-18 |
+|  224038 | Austin       | 2014-05-26 |
+|  226275 | Dalrymple    | no orders  |
+|  226656 | Randall      | 2014-08-25 |
+|  227105 | Kafka        | 2014-10-18 |
+|  228175 | Cardin       | 2014-05-06 |
+|  228275 | Mikulski     | no orders  |
+|  228352 | Edwards      | no orders  |
+|  234138 | Keats        | 2014-10-10 |
+|  234709 | Brahms       | 2013-09-22 |
+|  239427 | Marksa       | 2014-09-26 |
+|  255919 | Milton       | no orders  |
+|  258595 | Jobs         | 2014-09-20 |
+|  259906 | Capybara     | 2014-08-27 |
+|  259907 | Hedge        | no orders  |
+|  259969 | Carlsen      | 2014-09-12 |
+|  260368 | Muller       | 2014-09-26 |
+|  261502 | Hawthorne    | 2014-09-08 |
+|  263119 | Jones        | 2014-09-21 |
+|  267780 | Shelly       | 2014-10-01 |
+|  272611 | Jarrett      | 2014-09-28 |
+|  272787 | Carlson      | 2014-10-12 |
+|  276381 | Collins      | 2014-04-15 |
+|  282716 | Biederbecke  | 2014-10-23 |
+|  287261 | Biederbecke  | no orders  |
+|  290298 | Swift        | 2014-10-20 |
+|  296598 | Collins      | 2014-09-20 |
+|  299099 | Sam          | 2014-09-08 |
++---------+--------------+------------+
+37 rows in set (0.08 sec)
+
+Bye
